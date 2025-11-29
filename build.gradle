@@ -67,16 +67,15 @@ def codegenJdbcUser = resolveSecretSetting('CODEGEN_JDBC_USER', 'CODEGEN_JDBC_US
 def codegenJdbcPassword = resolveSecretSetting('CODEGEN_JDBC_PASSWORD', 'CODEGEN_JDBC_PASSWORD', 'password')
 
 jooq {
-	configurations {
-        generateSchemaSourceOnCompilation = true
-        jdbc {
-            driver = 'org.postgresql.Driver'
-            url = codegenJdbcUrl
-            user = codegenJdbcUser
-            password = codegenJdbcPassword
-        }
-        generator {
-            // Kotlin code generation
+	configuration {
+		logging = org.jooq.meta.jaxb.Logging.WARN
+		jdbc {
+			driver = 'org.postgresql.Driver'
+			url = codegenJdbcUrl
+			user = codegenJdbcUser
+			password = codegenJdbcPassword
+		}
+		generator {
             name = 'org.jooq.codegen.KotlinGenerator'
             strategy {
                 name = 'org.jooq.codegen.DefaultGeneratorStrategy'
@@ -84,7 +83,7 @@ jooq {
             database {
                 name = 'org.jooq.meta.postgres.PostgresDatabase'
                 inputSchema = 'public'
-                includes = ".*"
+                includes = '.*'
                 excludes = 'flyway_schema_history'
             }
             target {
@@ -92,7 +91,7 @@ jooq {
                 directory = 'build/generated-src/jooq'
             }
         }
-    }
+	}
 }
 
 tasks.named('test') {
