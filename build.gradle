@@ -3,6 +3,7 @@ plugins {
 	id 'org.jetbrains.kotlin.plugin.spring' version '2.2.21'
 	id 'org.springframework.boot' version '4.0.0'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.jooq.jooq-codegen-gradle' version '3.19.28'
 }
 
 group = 'com.example'
@@ -28,6 +29,7 @@ dependencies {
 	implementation 'org.jetbrains.kotlin:kotlin-reflect'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 	runtimeOnly 'org.postgresql:postgresql'
+	jooqCodegen 'org.postgresql:postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-jooq-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
@@ -39,6 +41,58 @@ kotlin {
 	compilerOptions {
 		freeCompilerArgs.addAll '-Xjsr305=strict', '-Xannotation-default-target=param-property'
 	}
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir 'build/generated-src/jooq/main'
+		}
+	}
+}
+
+Properties localProps = new Properties()
+File localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+	localPropsFile.withInputStream{localProps.load(it) }
+}
+
+def resolveSecretSetting = { propKey, envKey, defaultValue ->
+	localProps.getProperty(propKey) ?:
+			(System.getenv(envKey) ?: defaultValue)
+}
+
+def codegenJdbcUrl = resolveSecretSetting('CODEGEN_JDBC_URL', 'CODEGEN_JDBC_URL', 'jdbc:postgresql://url')
+def codegenJdbcUser = resolveSecretSetting('CODEGEN_JDBC_USER', 'CODEGEN_JDBC_USER', 'username')
+def codegenJdbcPassword = resolveSecretSetting('CODEGEN_JDBC_PASSWORD', 'CODEGEN_JDBC_PASSWORD', 'password')
+
+jooq {
+	configurations {
+        generateSchemaSourceOnCompilation = true
+        jdbc {
+            driver = 'org.postgresql.Driver'
+            url = codegenJdbcUrl
+            user = codegenJdbcUser
+            password = codegenJdbcPassword
+        }
+        generator {
+            // Kotlin code generation
+            name = 'org.jooq.codegen.KotlinGenerator'
+            strategy {
+                name = 'org.jooq.codegen.DefaultGeneratorStrategy'
+            }
+            database {
+                name = 'org.jooq.meta.postgres.PostgresDatabase'
+                inputSchema = 'public'
+                includes = ".*"
+                excludes = 'flyway_schema_history'
+            }
+            target {
+                packageName = 'com.example.book_manager.jooq'
+                directory = 'build/generated-src/jooq'
+            }
+        }
+    }
 }
 
 tasks.named('test') {
