@@ -8,6 +8,8 @@ import com.example.book_manager.dto.BookResponse
 import com.example.book_manager.exception.NotFoundException
 import com.example.book_manager.repository.AuthorRepository
 import com.example.book_manager.repository.BookRepository
+import com.example.book_manager.repository.toAuthorResponse
+import com.example.book_manager.repository.toBookResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -24,13 +26,7 @@ class AuthorServiceImpl(
             birthDate = request.birthDate
         )
 
-        return AuthorResponse(
-            id = authorRecord.id!!,
-            name = authorRecord.name!!,
-            birthDate = authorRecord.birthDate!!,
-            createdAt = authorRecord.createdAt!!,
-            updatedAt = authorRecord.updatedAt!!
-        )
+        return authorRecord.toAuthorResponse()
     }
 
     override fun updateAuthor(authorId: Long, request: AuthorUpdateRequest): AuthorResponse {
@@ -40,13 +36,7 @@ class AuthorServiceImpl(
             birthDate = request.birthDate
         ) ?: throw NotFoundException("Author not found: $authorId")
 
-        return AuthorResponse(
-            id = updated.id!!,
-            name = updated.name!!,
-            birthDate = updated.birthDate!!,
-            createdAt = updated.createdAt!!,
-            updatedAt = updated.updatedAt!!
-        )
+        return updated.toAuthorResponse()
     }
 
     override fun deleteAuthor(authorId: Long) {
@@ -65,16 +55,9 @@ class AuthorServiceImpl(
         val bookRecords = bookRepository.findBooksByAuthorId(authorId, status)
 
         return bookRecords.map { book ->
-            val authorIds = bookRepository.findAuthorIdsByBookId(book.id!!)
-            BookResponse(
-                id = book.id!!,
-                title = book.title!!,
-                price = book.price!!,
-                status = BookStatus.valueOf(book.status!!),
-                authorIds = authorIds,
-                createdAt = book.createdAt!!,
-                updatedAt = book.updatedAt!!
-            )
+            val bookId = book.id ?: throw IllegalStateException("Book ID is null")
+            val authorIds = bookRepository.findAuthorIdsByBookId(bookId)
+            book.toBookResponse(authorIds)
         }
     }
 }

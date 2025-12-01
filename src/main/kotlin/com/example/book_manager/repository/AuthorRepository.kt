@@ -17,7 +17,8 @@ class AuthorRepository(
             .set(AUTHORS.NAME, name)
             .set(AUTHORS.BIRTH_DATE, birthDate)
             .returning()
-            .fetchOne()!!
+            .fetchOne()
+            ?: throw IllegalStateException("Failed to create author record")
     }
 
     fun update(authorId: Long, name: String, birthDate: LocalDate): AuthorsRecord? {

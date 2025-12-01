@@ -19,7 +19,8 @@ class BookRepository(
             .set(BOOKS.PRICE, price)
             .set(BOOKS.STATUS, status.name)
             .returning()
-            .fetchOne()!!
+            .fetchOne()
+            ?: throw IllegalStateException("Failed to create book record")
     }
 
     fun update(bookId: Long, title: String, price: Int, status: BookStatus): BooksRecord? {

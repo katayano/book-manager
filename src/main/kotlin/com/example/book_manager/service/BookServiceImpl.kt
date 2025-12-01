@@ -8,6 +8,7 @@ import com.example.book_manager.exception.BusinessRuleViolationException
 import com.example.book_manager.exception.NotFoundException
 import com.example.book_manager.repository.AuthorRepository
 import com.example.book_manager.repository.BookRepository
+import com.example.book_manager.repository.toBookResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -32,17 +33,10 @@ class BookServiceImpl(
         )
 
         // 中間テーブルに著者を紐付け
-        bookRepository.addAuthors(bookRecord.id!!, request.authorIds)
+        val bookId = bookRecord.id ?: throw IllegalStateException("Book ID is null after creation")
+        bookRepository.addAuthors(bookId, request.authorIds)
 
-        return BookResponse(
-            id = bookRecord.id!!,
-            title = bookRecord.title!!,
-            price = bookRecord.price!!,
-            status = BookStatus.valueOf(bookRecord.status!!),
-            authorIds = request.authorIds,
-            createdAt = bookRecord.createdAt!!,
-            updatedAt = bookRecord.updatedAt!!
-        )
+        return bookRecord.toBookResponse(request.authorIds)
     }
 
     override fun updateBook(bookId: Long, request: BookUpdateRequest): BookResponse {
@@ -51,7 +45,8 @@ class BookServiceImpl(
             ?: throw NotFoundException("Book not found: $bookId")
 
         // 出版済み→未出版への変更を禁止
-        val currentStatus = BookStatus.valueOf(existingBook.status!!)
+        val currentStatus = existingBook.status?.let { BookStatus.valueOf(it) }
+            ?: throw IllegalStateException("Book status is null")
         if (currentStatus == BookStatus.PUBLISHED && request.status == BookStatus.UNPUBLISHED) {
             throw BusinessRuleViolationException("Cannot change status from PUBLISHED to UNPUBLISHED")
         }
@@ -69,19 +64,11 @@ class BookServiceImpl(
             status = request.status
         ) ?: throw NotFoundException("Book not found: $bookId")
 
-        // 著者を更新（既存を削除して再登録）
+        // 著者を更新(既存を削除して再登録)
         bookRepository.removeAllAuthors(bookId)
         bookRepository.addAuthors(bookId, request.authorIds)
 
-        return BookResponse(
-            id = updated.id!!,
-            title = updated.title!!,
-            price = updated.price!!,
-            status = BookStatus.valueOf(updated.status!!),
-            authorIds = request.authorIds,
-            createdAt = updated.createdAt!!,
-            updatedAt = updated.updatedAt!!
-        )
+        return updated.toBookResponse(request.authorIds)
     }
 
     override fun deleteBook(bookId: Long) {
