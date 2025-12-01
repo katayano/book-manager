@@ -31,6 +31,12 @@ class AuthorRepository(
             .fetchOne()
     }
 
+    fun findById(authorId: Long): AuthorsRecord? {
+        return dsl.selectFrom(AUTHORS)
+            .where(AUTHORS.ID.eq(authorId))
+            .fetchOne()
+    }
+
     fun delete(authorId: Long): Int {
         return dsl.deleteFrom(AUTHORS)
             .where(AUTHORS.ID.eq(authorId))
