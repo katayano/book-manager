@@ -51,6 +51,10 @@ class AuthorRepository(
     }
 
     fun existsByIds(authorIds: List<Long>): Boolean {
+        if (authorIds.isEmpty()) {
+            return false
+        }
+
         val count = dsl.selectCount()
             .from(AUTHORS)
             .where(AUTHORS.ID.`in`(authorIds))
